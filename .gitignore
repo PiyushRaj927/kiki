@@ -1,1 +1,5 @@
-dpdk/**
+dpdk-*
+.terraform
+**.qcow2
+*.tfstate.*
+.vscode

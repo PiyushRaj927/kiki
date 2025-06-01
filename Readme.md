@@ -6,6 +6,5 @@ Below is a rough outline of kiki's planned internal architecture:
 
 ![Planned Architecture](./assets/architechure.png)
 
-_Code and detailed documentation will be made available soon._
-
 ## **🚧 Work in Progress** 🚧
+This is a learning project focused on exploring low-latency networking and high-performance programming. 
