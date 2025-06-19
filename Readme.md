@@ -4,7 +4,7 @@ kiki is a low-latency, high-throughput Layer 4 load balancer built using the [**
 
 Below is a rough outline of kiki's planned internal architecture:
 
-![Planned Architecture](./assets/architechure.png)
+![Planned Architecture](./assets/kiki-architechure.svg)
 
 ## **🚧 Work in Progress** 🚧
 This is a learning project focused on exploring low-latency networking and high-performance programming. 
