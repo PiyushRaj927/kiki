@@ -20,7 +20,7 @@ struct rte_mbuf* arr_process_packet(struct rte_arp_hdr* arp_hdr, rte_be32_t bind
 
     mbuf->pkt_len = total_length;
     mbuf->data_len = total_length;
-
+    // eth
     uint8_t* pkt_data = rte_pktmbuf_mtod(mbuf, uint8_t*);
     struct rte_ether_hdr* eth = (struct rte_ether_hdr*)pkt_data;
     rte_memcpy(eth->src_addr.addr_bytes, bind_mac.addr_bytes, RTE_ETHER_ADDR_LEN);
@@ -39,7 +39,7 @@ struct rte_mbuf* arr_process_packet(struct rte_arp_hdr* arp_hdr, rte_be32_t bind
 
     arp->arp_data.arp_sip = bind_ip;
     arp->arp_data.arp_tip = arp_hdr->arp_data.arp_sip;
-    printf("ARP packet created\n");
+    printf("[ARP REPLY] %02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X\n", RTE_ETHER_ADDR_BYTES(&eth->src_addr), RTE_ETHER_ADDR_BYTES(&eth->src_addr));
     return mbuf;
 
 
