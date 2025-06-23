@@ -1,4 +1,4 @@
-from scapy.all import Ether, IP, ICMP, sendp, get_if_hwaddr, UDP, ARP,srp
+from scapy.all import *
 
 iface = "ens4"
 
@@ -21,9 +21,23 @@ print(ans)
 for sent, received in ans:
     print(f"IP: {received.psrc}, MAC: {received.hwsrc}")
 
+# Create ICMP echo request (ping)
+icmp_request = IP(dst=target_ip)/ICMP()
+
+# Send the packet and wait for a reply
+reply = sr1(icmp_request, timeout=2, verbose=0)
+
+# Check and print response
+if reply:
+    print("Received response:")
+    reply.show()
+else:
+    print("No reply received")
+
 pkt = Ether(src=source_mac, dst=target_mac) / \
       IP(src="192.168.1.10", dst="192.168.1.20") / \
       UDP(sport=1234, dport=80) / \
       b"Hello via custom MAC!"
 
 sendp(pkt, iface=iface, verbose=True,count=1)
+print(send)

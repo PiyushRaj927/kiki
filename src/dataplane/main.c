@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <rte_eal.h>
 #include <rte_debug.h>
 #include <rte_errno.h>
@@ -8,6 +9,7 @@
 #include <rte_pcapng.h>
 
 #include "arp.h"
+#include "icmp.h"
 
 #define RX_RING_SIZE 1024
 #define TX_RING_SIZE 1024
@@ -141,9 +143,9 @@ int main(int argc, char** argv)
             const uint16_t nb_rx = rte_eth_rx_burst(portid, 0,
                 mbufs, BURST_SIZE);
 
-            if (nb_rx > 0) {
-                printf("Received %u packets on port %u\n", nb_rx, portid);
-            }
+            // if (nb_rx > 0) {
+            //     printf("Received %u packets on port %u\n", nb_rx, portid);
+            // }
             struct rte_ether_addr bind_mac;
             int retval;
             retval = rte_eth_macaddr_get(portid, &bind_mac);
@@ -163,13 +165,26 @@ int main(int argc, char** argv)
                 // }
                 rte_be16_t packet_ether_type = rte_be_to_cpu_16(ehdr->ether_type);;
                 if (packet_ether_type == RTE_ETHER_TYPE_IPV4) {
-                    printf("IPv4 packet received\n");
+                    struct rte_ipv4_hdr* iphdr = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_ipv4_hdr*, sizeof(struct rte_ether_hdr));
+                    printf("ipv4 protocol 0x%x\n", iphdr->next_proto_id);
+                    if (iphdr->next_proto_id == IPPROTO_ICMP) {
+
+                        printf("ICMP packet received\n");
+                        struct rte_icmp_hdr* icmp_hdr = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_icmp_hdr*, sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
+                        if (icmp_hdr->icmp_type == RTE_ICMP_TYPE_ECHO_REQUEST) {
+                            printf("echo requested\n");
+                            struct rte_mbuf* icmp_buf = icmp_echo_request_process_packet(icmp_hdr, bind_ip, mbufs[i], bind_mac);
+                            rte_eth_tx_burst(portid, 0, &icmp_buf, 1);
+                            printf("ICMP reply packet send\n");
+                            rte_pktmbuf_free(icmp_buf);
+                        };
+                    };
                 }
                 else if (packet_ether_type == RTE_ETHER_TYPE_ARP) {
                     printf("ARP packet received\n");
-                    printf("bind ip 0x%x\n",bind_ip);
+                    printf("bind ip 0x%x\n", bind_ip);
                     struct rte_arp_hdr* arp_hdr = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_arp_hdr*, sizeof(struct rte_ether_hdr));
-                    printf("target ip 0x%x\n",arp_hdr->arp_data.arp_tip);
+                    printf("target ip 0x%x\n", arp_hdr->arp_data.arp_tip);
                     if (likely(arp_hdr->arp_data.arp_tip == bind_ip)) {
                         printf("ARP RECEIVED from MAC: %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8" %02"PRIx8"\n", RTE_ETHER_ADDR_BYTES(&arp_hdr->arp_data.arp_sha));
 
@@ -178,33 +193,26 @@ int main(int argc, char** argv)
                         rte_eth_tx_burst(portid, 0, &arp_buf, 1);
                         printf("ARP packet send\n");
                         rte_pktmbuf_free(arp_buf);
-                        rte_pktmbuf_free(mbufs[i]);
                     }
                 }
-                    else if (packet_ether_type == RTE_ETHER_TYPE_IPV6) {
-                        printf("IPv6 packet received\n");
-                    }
-                    else {
-                        // printf("Unknown EtherType: 0x%x\n", packet_ether_type);
-                    }
-                };
-
-                const uint16_t nb_tx = rte_eth_tx_burst(portid, 0,
-                    mbufs, nb_rx);
-                if (unlikely(nb_tx < nb_rx)) {
-                    uint16_t buf;
-
-                    for (buf = nb_tx; buf < nb_rx; buf++)
-                        rte_pktmbuf_free(mbufs[buf]);
+                else if (packet_ether_type == RTE_ETHER_TYPE_IPV6) {
+                    printf("IPv6 packet received\n");
+                }
+                else {
+                    // printf("Unknown EtherType: 0x%x\n", packet_ether_type);
                 }
 
+                rte_pktmbuf_free(mbufs[i]);
 
-            }
+            };
 
 
         }
-        /* clean up the EAL */
-        rte_eal_cleanup();
 
-        return 0;
+
     }
+    /* clean up the EAL */
+    rte_eal_cleanup();
+
+    return 0;
+}
